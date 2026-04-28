@@ -22,11 +22,12 @@ type CategoryResponse struct {
 }
 
 type RestaurantResponse struct {
-	ID           uint      `json:"id"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	Address      string    `json:"address"`
-	CategoryName string    `json:"category_name"`
-	CreatedBy    uint      `json:"created_by"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID            uint      `json:"id"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	Address       string    `json:"address"`
+	CategoryName  string    `json:"category_name"`
+	AverageRating float64   `json:"average_rating"`
+	CreatedBy     uint      `json:"created_by"`
+	CreatedAt     time.Time `json:"created_at"`
 }

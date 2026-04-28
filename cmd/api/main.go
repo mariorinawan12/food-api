@@ -19,6 +19,8 @@ func main() {
 	db := config.InitDB()
 	config.RunMigration(db)
 
-	r := router.SetupRouter(db)
+	rdb := config.InitRedis()
+
+	r := router.SetupRouter(db, rdb)
 	r.Run(":" + os.Getenv("APP_PORT"))
 }

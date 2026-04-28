@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
@@ -26,6 +27,13 @@ func InitDB() *gorm.DB {
 	return db
 }
 
+func InitRedis() *redis.Client {
+	rdb := redis.NewClient(&redis.Options{
+		Addr: os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
+	})
+	return rdb
+}
+
 func RunMigration(db *gorm.DB) {
 	db.AutoMigrate(
 		&domain.Role{},
@@ -37,6 +45,7 @@ func RunMigration(db *gorm.DB) {
 		&domain.CartItem{},
 		&domain.Order{},
 		&domain.OrderItem{},
+		&domain.Review{},
 	)
 
 	// seed role default
@@ -54,7 +63,7 @@ func RunMigration(db *gorm.DB) {
 		RoleID:   1,
 	})
 
-	categories := []string{"Chinese Food", "Korean Food", "Seafood", "Fast Food", "Western", "Snack", "Dessert"}
+	categories := []string{"Western Food", "Asian Food", "Local Food", "Snack", "Drink"}
 	for _, name := range categories {
 		db.FirstOrCreate(&domain.RestaurantCategory{}, domain.RestaurantCategory{Name: name})
 	}

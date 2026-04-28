@@ -53,13 +53,13 @@ func (h *Handler) GetAll(c *gin.Context) {
 }
 
 func (h *Handler) GetByID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	menuID, err := strconv.Atoi(c.Param("menu_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
-	m, err := h.usecase.GetByID(uint(id))
+	m, err := h.usecase.GetByID(uint(menuID))
 	if err != nil {
 		helper.Error(c, http.StatusNotFound, err.Error())
 		return
@@ -77,7 +77,53 @@ func (h *Handler) GetByID(c *gin.Context) {
 	})
 }
 
+func (h *Handler) GetByRestaurant(c *gin.Context) {
+	restaurantID, err := strconv.Atoi(c.Param("restaurant_id"))
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, "invalid restaurant id")
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.Query("search")
+
+	menus, total, err := h.usecase.GetAll(uint(restaurantID), search, page, limit)
+	if err != nil {
+		helper.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var result []MenuResponse
+	for _, m := range menus {
+		result = append(result, MenuResponse{
+			ID:             m.ID,
+			RestaurantID:   m.RestaurantID,
+			RestaurantName: m.Restaurant.Name,
+			Name:           m.Name,
+			Description:    m.Description,
+			Price:          m.Price,
+			Category:       m.Category,
+			CreatedAt:      m.CreatedAt,
+		})
+	}
+
+	helper.Success(c, http.StatusOK, "success", gin.H{
+		"data":  result,
+		"total": total,
+		"page":  page,
+		"limit": limit,
+	})
+}
+
 func (h *Handler) Create(c *gin.Context) {
+
+	restaurantID, err := strconv.Atoi(c.Param("restaurant_id"))
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, "invalid restaurant id")
+		return
+	}
+
 	var req CreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
@@ -87,9 +133,11 @@ func (h *Handler) Create(c *gin.Context) {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	req.RestaurantID = uint(restaurantID)
 
 	userID := c.GetUint("user_id")
-	m, err := h.usecase.Create(req, userID)
+	role := c.GetString("role")
+	m, err := h.usecase.Create(req, userID, role)
 	if err != nil {
 		helper.Error(c, http.StatusForbidden, err.Error())
 		return
@@ -108,7 +156,7 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 func (h *Handler) Update(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	menuID, err := strconv.Atoi(c.Param("menu_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
@@ -121,7 +169,8 @@ func (h *Handler) Update(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	m, err := h.usecase.Update(uint(id), req, userID)
+	role := c.GetString("role")
+	m, err := h.usecase.Update(uint(menuID), req, userID, role)
 	if err != nil {
 		helper.Error(c, http.StatusForbidden, err.Error())
 		return
@@ -140,14 +189,15 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 func (h *Handler) Delete(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	menuID, err := strconv.Atoi(c.Param("menu_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
 	userID := c.GetUint("user_id")
-	if err := h.usecase.Delete(uint(id), userID); err != nil {
+	role := c.GetString("role")
+	if err := h.usecase.Delete(uint(menuID), userID, role); err != nil {
 		helper.Error(c, http.StatusForbidden, err.Error())
 		return
 	}

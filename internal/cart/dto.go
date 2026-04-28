@@ -4,7 +4,7 @@ import "time"
 
 // request
 type CreateCartRequest struct {
-	RestaurantID uint `json:"restaurant_id" validate:"required"`
+	RestaurantID uint `json:"-"`
 }
 
 type AddItemRequest struct {

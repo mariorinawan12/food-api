@@ -3,7 +3,7 @@ package menu
 import "time"
 
 type CreateRequest struct {
-	RestaurantID uint    `json:"restaurant_id" validate:"required"`
+	RestaurantID uint    `json:"-"`
 	Name         string  `json:"name" validate:"required"`
 	Description  string  `json:"description"`
 	Price        float64 `json:"price" validate:"required,gt=0"`

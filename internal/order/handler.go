@@ -43,6 +43,11 @@ func buildOrderResponse(order *domain.Order) OrderResponse {
 }
 
 func (h *Handler) Checkout(c *gin.Context) {
+	cartID, err := strconv.Atoi(c.Param("cart_id"))
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, "Invalid cart id")
+		return
+	}
 	var req CheckoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
@@ -53,6 +58,7 @@ func (h *Handler) Checkout(c *gin.Context) {
 		return
 	}
 
+	req.CartID = uint(cartID)
 	userID := c.GetUint("user_id")
 	order, err := h.usecase.Checkout(userID, req)
 	if err != nil {
@@ -138,14 +144,47 @@ func (h *Handler) GetRestaurantOrders(c *gin.Context) {
 }
 
 func (h *Handler) GetByID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	orderID, err := strconv.Atoi(c.Param("order_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
 	userID := c.GetUint("user_id")
-	order, err := h.usecase.GetByID(userID, uint(id))
+	order, err := h.usecase.GetByID(userID, uint(orderID))
+	if err != nil {
+		helper.Error(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	helper.Success(c, http.StatusOK, "success", buildOrderResponse(order))
+}
+
+func (h *Handler) GetOrderDetail(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("order_id"))
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	order, err := h.usecase.GetOrderDetail(uint(orderID))
+	if err != nil {
+		helper.Error(c, http.StatusNotFound, err.Error())
+		return
+	}
+
+	helper.Success(c, http.StatusOK, "success", buildOrderResponse(order))
+}
+
+func (h *Handler) GetOrderDetailByAdmin(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("order_id"))
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	adminID := c.GetUint("user_id")
+	order, err := h.usecase.GetOrderDetailByAdmin(adminID, uint(orderID))
 	if err != nil {
 		helper.Error(c, http.StatusNotFound, err.Error())
 		return
@@ -155,14 +194,14 @@ func (h *Handler) GetByID(c *gin.Context) {
 }
 
 func (h *Handler) Pay(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	orderID, err := strconv.Atoi(c.Param("order_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
 	userID := c.GetUint("user_id")
-	order, err := h.usecase.Pay(userID, uint(id))
+	order, err := h.usecase.Pay(userID, uint(orderID))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -172,14 +211,14 @@ func (h *Handler) Pay(c *gin.Context) {
 }
 
 func (h *Handler) Cancel(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	orderID, err := strconv.Atoi(c.Param("order_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
 	userID := c.GetUint("user_id")
-	order, err := h.usecase.Cancel(userID, uint(id))
+	order, err := h.usecase.Cancel(userID, uint(orderID))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -189,14 +228,14 @@ func (h *Handler) Cancel(c *gin.Context) {
 }
 
 func (h *Handler) Process(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	orderID, err := strconv.Atoi(c.Param("order_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
 	adminID := c.GetUint("user_id")
-	order, err := h.usecase.Process(adminID, uint(id))
+	order, err := h.usecase.Process(adminID, uint(orderID))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -206,14 +245,14 @@ func (h *Handler) Process(c *gin.Context) {
 }
 
 func (h *Handler) Deliver(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	orderID, err := strconv.Atoi(c.Param("order_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
 	adminID := c.GetUint("user_id")
-	order, err := h.usecase.Deliver(adminID, uint(id))
+	order, err := h.usecase.Deliver(adminID, uint(orderID))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return

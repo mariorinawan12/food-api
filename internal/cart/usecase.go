@@ -6,8 +6,12 @@ import (
 	"github.com/mariorinawan12/food-api/internal/domain"
 )
 
+type MenuRepository interface {
+	FindByID(id uint) (*domain.Menu, error)
+}
+
 type Usecase interface {
-	GetAllCarts(userID uint) ([]domain.Cart, error)
+	GetAllCarts(userID uint, page int, limit int) ([]domain.Cart, int64, error)
 	GetCartByID(userID uint, cartID uint) (*domain.Cart, error)
 	CreateCart(userID uint, req CreateCartRequest) (*domain.Cart, error)
 	DeleteCart(userID uint, cartID uint) error
@@ -17,15 +21,22 @@ type Usecase interface {
 }
 
 type usecase struct {
-	repo Repository
+	repo     Repository
+	menuRepo MenuRepository
 }
 
-func NewUsecase(repo Repository) Usecase {
-	return &usecase{repo}
+func NewUsecase(repo Repository, menuRepo MenuRepository) Usecase {
+	return &usecase{repo, menuRepo}
 }
 
-func (u *usecase) GetAllCarts(userID uint) ([]domain.Cart, error) {
-	return u.repo.FindAllByUserID(userID)
+func (u *usecase) GetAllCarts(userID uint, page, limit int) ([]domain.Cart, int64, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	return u.repo.FindAllByUserID(userID, page, limit)
 }
 
 func (u *usecase) GetCartByID(userID uint, cartID uint) (*domain.Cart, error) {
@@ -40,7 +51,6 @@ func (u *usecase) GetCartByID(userID uint, cartID uint) (*domain.Cart, error) {
 }
 
 func (u *usecase) CreateCart(userID uint, req CreateCartRequest) (*domain.Cart, error) {
-	// cek apakah sudah ada cart untuk restoran ini
 	existing, err := u.repo.FindByUserIDAndRestaurantID(userID, req.RestaurantID)
 	if err == nil && existing.ID != 0 {
 		return nil, errors.New("cart for this restaurant already exists")
@@ -57,7 +67,7 @@ func (u *usecase) CreateCart(userID uint, req CreateCartRequest) (*domain.Cart, 
 	return cart, nil
 }
 
-func (u *usecase) DeleteCart(userID, cartID uint) error {
+func (u *usecase) DeleteCart(userID uint, cartID uint) error {
 	cart, err := u.repo.FindByID(cartID)
 	if err != nil {
 		return errors.New("cart not found")
@@ -77,11 +87,13 @@ func (u *usecase) AddItem(userID, cartID uint, req AddItemRequest) (*domain.Cart
 		return nil, errors.New("unauthorized")
 	}
 
-	// validasi menu dari restoran yang sama
-	for _, item := range cart.CartItems {
-		if item.Menu.RestaurantID != cart.RestaurantID {
-			return nil, errors.New("menu does not belong to this restaurant")
-		}
+	// ← validasi menu yang mau ditambah
+	menu, err := u.menuRepo.FindByID(req.MenuID)
+	if err != nil {
+		return nil, errors.New("menu not found")
+	}
+	if menu.RestaurantID != cart.RestaurantID {
+		return nil, errors.New("menu does not not belong to this restaurant")
 	}
 
 	// cek apakah menu sudah ada di cart
@@ -105,7 +117,7 @@ func (u *usecase) AddItem(userID, cartID uint, req AddItemRequest) (*domain.Cart
 	return u.repo.FindByID(cartID)
 }
 
-func (u *usecase) UpdateItem(userID, cartID, itemID uint, req UpdateItemRequest) (*domain.Cart, error) {
+func (u *usecase) UpdateItem(userID uint, cartID uint, itemID uint, req UpdateItemRequest) (*domain.Cart, error) {
 	cart, err := u.repo.FindByID(cartID)
 	if err != nil {
 		return nil, errors.New("cart not found")
@@ -130,7 +142,7 @@ func (u *usecase) UpdateItem(userID, cartID, itemID uint, req UpdateItemRequest)
 	return u.repo.FindByID(cartID)
 }
 
-func (u *usecase) DeleteItem(userID, cartID, itemID uint) (*domain.Cart, error) {
+func (u *usecase) DeleteItem(userID uint, cartID uint, itemID uint) (*domain.Cart, error) {
 	cart, err := u.repo.FindByID(cartID)
 	if err != nil {
 		return nil, errors.New("cart not found")

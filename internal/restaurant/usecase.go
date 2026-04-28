@@ -10,8 +10,8 @@ type Usecase interface {
 	GetAll(search string, categoryID uint, page, limit int) ([]domain.Restaurant, int64, error)
 	GetByID(id uint) (*domain.Restaurant, error)
 	Create(req CreateRequest, userID uint) (*domain.Restaurant, error)
-	Update(id uint, req UpdateRequest, userID uint) (*domain.Restaurant, error)
-	Delete(id uint, userID uint) error
+	Update(id uint, req UpdateRequest, userID uint, role string) (*domain.Restaurant, error)
+	Delete(id uint, userID uint, role string) error
 	GetMyRestaurants(userID uint) ([]domain.Restaurant, error)
 }
 
@@ -55,16 +55,17 @@ func (u *usecase) Create(req CreateRequest, userID uint) (*domain.Restaurant, er
 	return restaurant, nil
 }
 
-func (u *usecase) Update(id uint, req UpdateRequest, userID uint) (*domain.Restaurant, error) {
+func (u *usecase) Update(id uint, req UpdateRequest, userID uint, role string) (*domain.Restaurant, error) {
 	restaurant, err := u.repo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("restaurant not found")
 	}
 
-	if !u.repo.IsOwnedBy(id, userID) {
-		return nil, errors.New("unauthorized, you are not the owner")
+	if role != "super_admin" {
+		if !u.repo.IsOwnedBy(id, userID) {
+			return nil, errors.New("unauthorized, you are not the owner")
+		}
 	}
-
 	if req.Name != "" {
 		restaurant.Name = req.Name
 	}
@@ -84,13 +85,15 @@ func (u *usecase) Update(id uint, req UpdateRequest, userID uint) (*domain.Resta
 	return restaurant, nil
 }
 
-func (u *usecase) Delete(id uint, userID uint) error {
+func (u *usecase) Delete(id uint, userID uint, role string) error {
 	if _, err := u.repo.FindByID(id); err != nil {
 		return errors.New("restaurant not found")
 	}
 
-	if !u.repo.IsOwnedBy(id, userID) {
-		return errors.New("unauthorized, you are not the owner")
+	if role != "super_admin" {
+		if !u.repo.IsOwnedBy(id, userID) {
+			return errors.New("unauthorized, you are not the owner")
+		}
 	}
 
 	return u.repo.Delete(id)

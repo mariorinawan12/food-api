@@ -23,7 +23,7 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db}
 }
 
-func (r *repository) FindAllByUserID(userID uint, status string, page, limit int) ([]domain.Order, int64, error) {
+func (r *repository) FindAllByUserID(userID uint, status string, page int, limit int) ([]domain.Order, int64, error) {
 	var orders []domain.Order
 	var total int64
 
@@ -70,7 +70,7 @@ func (r *repository) FindAllByRestaurantAdminID(adminID uint, status string, pag
 		Joins("JOIN menus ON menus.id = order_items.menu_id").
 		Joins("JOIN restaurants ON restaurants.id = menus.restaurant_id").
 		Where("restaurants.created_by = ?", adminID).
-		Distinct("orders.id")
+		Group("orders.id")
 
 	if status != "" {
 		query = query.Where("orders.status = ?", status)
@@ -84,7 +84,7 @@ func (r *repository) FindAllByRestaurantAdminID(adminID uint, status string, pag
 
 func (r *repository) FindByID(id uint) (*domain.Order, error) {
 	var order domain.Order
-	err := r.db.Preload("OrderItems.Menu").Preload("User").First(&order.ID).Error
+	err := r.db.Preload("OrderItems.Menu").Preload("User").First(&order, id).Error
 	return &order, err
 }
 

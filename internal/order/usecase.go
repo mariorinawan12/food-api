@@ -3,6 +3,7 @@ package order
 import (
 	"errors"
 
+	"github.com/mariorinawan12/food-api/internal/cart"
 	"github.com/mariorinawan12/food-api/internal/domain"
 	"gorm.io/gorm"
 )
@@ -13,6 +14,8 @@ type Usecase interface {
 	GetAllOrders(status string, page, limit int) ([]domain.Order, int64, error)
 	GetRestaurantOrders(adminID uint, status string, page, limit int) ([]domain.Order, int64, error)
 	GetByID(userID uint, orderID uint) (*domain.Order, error)
+	GetOrderDetail(orderID uint) (*domain.Order, error)
+	GetOrderDetailByAdmin(adminID uint, orderID uint) (*domain.Order, error)
 	Pay(userID uint, orderID uint) (*domain.Order, error)
 	Cancel(userID uint, orderID uint) (*domain.Order, error)
 	Process(adminID uint, orderID uint) (*domain.Order, error)
@@ -20,12 +23,13 @@ type Usecase interface {
 }
 
 type usecase struct {
-	repo Repository
-	db   *gorm.DB
+	repo     Repository
+	cartRepo cart.Repository
+	db       *gorm.DB
 }
 
-func NewUsecase(repo Repository, db *gorm.DB) Usecase {
-	return &usecase{repo, db}
+func NewUsecase(repo Repository, cartRepo cart.Repository, db *gorm.DB) Usecase {
+	return &usecase{repo, cartRepo, db}
 }
 
 var validTransitions = map[string][]string{
@@ -83,8 +87,10 @@ func (u *usecase) Checkout(userID uint, req CheckoutRequest) (*domain.Order, err
 		return nil, err
 	}
 
-	u.db.Where("cart_id = ?", cart.ID).Delete(&domain.CartItem{})
-	u.db.Delete(&domain.Cart{}, cart.ID)
+	// hapus cart via cart repo
+	if err := u.cartRepo.Delete(cart.ID); err != nil {
+		return nil, err
+	}
 
 	return u.repo.FindByID(order.ID)
 }
@@ -126,6 +132,27 @@ func (u *usecase) GetByID(userID uint, orderID uint) (*domain.Order, error) {
 	}
 	if order.UserID != userID {
 		return nil, errors.New("unauthorized")
+	}
+	return order, nil
+}
+
+func (u *usecase) GetOrderDetailByAdmin(adminID, orderID uint) (*domain.Order, error) {
+	order, err := u.repo.FindByID(orderID)
+	if err != nil {
+		return nil, errors.New("order not found")
+	}
+
+	if !u.repo.IsOrderOwnedByAdmin(adminID, orderID) {
+		return nil, errors.New("unauthorized, order does not belong to your restaurant")
+	}
+
+	return order, nil
+}
+
+func (u *usecase) GetOrderDetail(orderID uint) (*domain.Order, error) {
+	order, err := u.repo.FindByID(orderID)
+	if err != nil {
+		return nil, errors.New("order not found")
 	}
 	return order, nil
 }

@@ -48,9 +48,11 @@ func buildCartResponse(cart *domain.Cart) CartResponse {
 }
 
 func (h *Handler) GetAllCarts(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	userID := c.GetUint("user_id")
 
-	carts, err := h.usecase.GetAllCarts(userID)
+	carts, total, err := h.usecase.GetAllCarts(userID, page, limit)
 	if err != nil {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -61,11 +63,16 @@ func (h *Handler) GetAllCarts(c *gin.Context) {
 		result = append(result, buildCartResponse(&cart))
 	}
 
-	helper.Success(c, http.StatusOK, "success", result)
+	helper.Success(c, http.StatusOK, "success", gin.H{
+		"data":  result,
+		"total": total,
+		"page":  page,
+		"limit": limit,
+	})
 }
 
 func (h *Handler) GetCartByID(c *gin.Context) {
-	cartID, err := strconv.Atoi(c.Param("id"))
+	cartID, err := strconv.Atoi(c.Param("cart_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
@@ -82,18 +89,16 @@ func (h *Handler) GetCartByID(c *gin.Context) {
 }
 
 func (h *Handler) CreateCart(c *gin.Context) {
-	var req CreateCartRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helper.Error(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	if err := h.validate.Struct(req); err != nil {
-		helper.Error(c, http.StatusBadRequest, err.Error())
+	restaurantID, err := strconv.Atoi(c.Param("restaurant_id"))
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, "invalid restaurant id")
 		return
 	}
 
 	userID := c.GetUint("user_id")
-	cart, err := h.usecase.CreateCart(userID, req)
+	cart, err := h.usecase.CreateCart(userID, CreateCartRequest{
+		RestaurantID: uint(restaurantID),
+	})
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -103,7 +108,7 @@ func (h *Handler) CreateCart(c *gin.Context) {
 }
 
 func (h *Handler) DeleteCart(c *gin.Context) {
-	cartID, err := strconv.Atoi(c.Param("id"))
+	cartID, err := strconv.Atoi(c.Param("cart_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
@@ -119,7 +124,7 @@ func (h *Handler) DeleteCart(c *gin.Context) {
 }
 
 func (h *Handler) AddItem(c *gin.Context) {
-	cartID, err := strconv.Atoi(c.Param("id"))
+	cartID, err := strconv.Atoi(c.Param("cart_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
@@ -146,7 +151,7 @@ func (h *Handler) AddItem(c *gin.Context) {
 }
 
 func (h *Handler) UpdateItem(c *gin.Context) {
-	cartID, err := strconv.Atoi(c.Param("id"))
+	cartID, err := strconv.Atoi(c.Param("cart_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
@@ -179,9 +184,9 @@ func (h *Handler) UpdateItem(c *gin.Context) {
 }
 
 func (h *Handler) DeleteItem(c *gin.Context) {
-	cartID, err := strconv.Atoi(c.Param("id"))
+	cartID, err := strconv.Atoi(c.Param("cart_id"))
 	if err != nil {
-		helper.Error(c, http.StatusBadRequest, "invalid id")
+		helper.Error(c, http.StatusBadRequest, "invalid cart id")
 		return
 	}
 

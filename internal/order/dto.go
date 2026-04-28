@@ -3,7 +3,7 @@ package order
 import "time"
 
 type CheckoutRequest struct {
-	CartID  uint   `json:"cart_id" validate:"required"`
+	CartID  uint   `json:"-"`
 	Address string `json:"address" validate:"required"`
 }
 

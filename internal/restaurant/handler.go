@@ -33,13 +33,14 @@ func (h *Handler) GetAll(c *gin.Context) {
 	var result []RestaurantResponse
 	for _, r := range restaurants {
 		result = append(result, RestaurantResponse{
-			ID:           r.ID,
-			Name:         r.Name,
-			Description:  r.Description,
-			Address:      r.Address,
-			CategoryName: r.Category.Name,
-			CreatedBy:    r.CreatedBy,
-			CreatedAt:    r.CreatedAt,
+			ID:            r.ID,
+			Name:          r.Name,
+			Description:   r.Description,
+			Address:       r.Address,
+			CategoryName:  r.Category.Name,
+			AverageRating: r.AverageRating,
+			CreatedBy:     r.CreatedBy,
+			CreatedAt:     r.CreatedAt,
 		})
 	}
 
@@ -52,26 +53,27 @@ func (h *Handler) GetAll(c *gin.Context) {
 }
 
 func (h *Handler) GetByID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	restaurantID, err := strconv.Atoi(c.Param("restaurant_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
-	r, err := h.usecase.GetByID(uint(id))
+	r, err := h.usecase.GetByID(uint(restaurantID))
 	if err != nil {
 		helper.Error(c, http.StatusNotFound, err.Error())
 		return
 	}
 
 	helper.Success(c, http.StatusOK, "success", RestaurantResponse{
-		ID:           r.ID,
-		Name:         r.Name,
-		Description:  r.Description,
-		Address:      r.Address,
-		CategoryName: r.Category.Name,
-		CreatedBy:    r.CreatedBy,
-		CreatedAt:    r.CreatedAt,
+		ID:            r.ID,
+		Name:          r.Name,
+		Description:   r.Description,
+		Address:       r.Address,
+		CategoryName:  r.Category.Name,
+		AverageRating: r.AverageRating,
+		CreatedBy:     r.CreatedBy,
+		CreatedAt:     r.CreatedAt,
 	})
 }
 
@@ -94,18 +96,19 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	helper.Success(c, http.StatusCreated, "restaurant created", RestaurantResponse{
-		ID:           r.ID,
-		Name:         r.Name,
-		Description:  r.Description,
-		Address:      r.Address,
-		CategoryName: r.Category.Name,
-		CreatedBy:    r.CreatedBy,
-		CreatedAt:    r.CreatedAt,
+		ID:            r.ID,
+		Name:          r.Name,
+		Description:   r.Description,
+		Address:       r.Address,
+		CategoryName:  r.Category.Name,
+		AverageRating: r.AverageRating,
+		CreatedBy:     r.CreatedBy,
+		CreatedAt:     r.CreatedAt,
 	})
 }
 
 func (h *Handler) Update(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	restaurantID, err := strconv.Atoi(c.Param("restaurant_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
@@ -118,32 +121,35 @@ func (h *Handler) Update(c *gin.Context) {
 	}
 
 	userID := c.GetUint("user_id")
-	r, err := h.usecase.Update(uint(id), req, userID)
+	role := c.GetString("role")
+	r, err := h.usecase.Update(uint(restaurantID), req, userID, role)
 	if err != nil {
 		helper.Error(c, http.StatusForbidden, err.Error())
 		return
 	}
 
 	helper.Success(c, http.StatusOK, "restaurant updated", RestaurantResponse{
-		ID:           r.ID,
-		Name:         r.Name,
-		Description:  r.Description,
-		Address:      r.Address,
-		CategoryName: r.Category.Name,
-		CreatedBy:    r.CreatedBy,
-		CreatedAt:    r.CreatedAt,
+		ID:            r.ID,
+		Name:          r.Name,
+		Description:   r.Description,
+		Address:       r.Address,
+		CategoryName:  r.Category.Name,
+		AverageRating: r.AverageRating,
+		CreatedBy:     r.CreatedBy,
+		CreatedAt:     r.CreatedAt,
 	})
 }
 
 func (h *Handler) Delete(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	restaurantID, err := strconv.Atoi(c.Param("restaurant_id"))
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
 
 	userID := c.GetUint("user_id")
-	if err := h.usecase.Delete(uint(id), userID); err != nil {
+	role := c.GetString("role")
+	if err := h.usecase.Delete(uint(restaurantID), userID, role); err != nil {
 		helper.Error(c, http.StatusForbidden, err.Error())
 		return
 	}
@@ -163,13 +169,14 @@ func (h *Handler) GetMyRestaurants(c *gin.Context) {
 	var result []RestaurantResponse
 	for _, r := range restaurants {
 		result = append(result, RestaurantResponse{
-			ID:           r.ID,
-			Name:         r.Name,
-			Description:  r.Description,
-			Address:      r.Address,
-			CategoryName: r.Category.Name,
-			CreatedBy:    r.CreatedBy,
-			CreatedAt:    r.CreatedAt,
+			ID:            r.ID,
+			Name:          r.Name,
+			Description:   r.Description,
+			Address:       r.Address,
+			CategoryName:  r.Category.Name,
+			AverageRating: r.AverageRating,
+			CreatedBy:     r.CreatedBy,
+			CreatedAt:     r.CreatedAt,
 		})
 	}
 

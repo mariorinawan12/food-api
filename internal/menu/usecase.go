@@ -13,9 +13,9 @@ type RestaurantRepository interface {
 type Usecase interface {
 	GetAll(restaurantID uint, search string, page, limit int) ([]domain.Menu, int64, error)
 	GetByID(id uint) (*domain.Menu, error)
-	Create(req CreateRequest, userID uint) (*domain.Menu, error)
-	Update(id uint, req UpdateRequest, userID uint) (*domain.Menu, error)
-	Delete(id uint, userID uint) error
+	Create(req CreateRequest, userID uint, role string) (*domain.Menu, error)
+	Update(id uint, req UpdateRequest, userID uint, role string) (*domain.Menu, error)
+	Delete(id uint, userID uint, role string) error
 }
 
 type usecase struct {
@@ -45,10 +45,12 @@ func (u *usecase) GetByID(id uint) (*domain.Menu, error) {
 	return menu, nil
 }
 
-func (u *usecase) Create(req CreateRequest, userID uint) (*domain.Menu, error) {
-	// validasi restaurant milik user ini
-	if !u.restaurantRepo.IsOwnedBy(req.RestaurantID, userID) {
-		return nil, errors.New("unauthorized, restaurant does not belong to you")
+func (u *usecase) Create(req CreateRequest, userID uint, role string) (*domain.Menu, error) {
+
+	if role != "super_admin" {
+		if !u.restaurantRepo.IsOwnedBy(req.RestaurantID, userID) {
+			return nil, errors.New("unauthorized, restaurant does not belong to you")
+		}
 	}
 
 	menu := &domain.Menu{
@@ -64,14 +66,16 @@ func (u *usecase) Create(req CreateRequest, userID uint) (*domain.Menu, error) {
 	return menu, nil
 }
 
-func (u *usecase) Update(id uint, req UpdateRequest, userID uint) (*domain.Menu, error) {
+func (u *usecase) Update(id uint, req UpdateRequest, userID uint, role string) (*domain.Menu, error) {
 	menu, err := u.repo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("menu not found")
 	}
 
-	if !u.repo.IsOwnedBy(id, userID) {
-		return nil, errors.New("unauthorized, you are not the owner")
+	if role != "super_admin" {
+		if !u.repo.IsOwnedBy(id, userID) {
+			return nil, errors.New("unauthorized, you are not the owner")
+		}
 	}
 
 	if req.Name != "" {
@@ -93,13 +97,15 @@ func (u *usecase) Update(id uint, req UpdateRequest, userID uint) (*domain.Menu,
 	return menu, nil
 }
 
-func (u *usecase) Delete(id uint, userID uint) error {
+func (u *usecase) Delete(id uint, userID uint, role string) error {
 	if _, err := u.repo.FindByID(id); err != nil {
 		return errors.New("menu not found")
 	}
 
-	if !u.repo.IsOwnedBy(id, userID) {
-		return errors.New("unauthorized, you are not the owner")
+	if role != "super_admin" {
+		if !u.repo.IsOwnedBy(id, userID) {
+			return errors.New("unauthorized, you are not the owner")
+		}
 	}
 
 	return u.repo.Delete(id)
